@@ -154,14 +154,17 @@ export default function SettingsPage() {
                           <span className="text-[10px] text-stone-600 font-bold uppercase tracking-widest">Status</span>
                           <span className={cn(
                             "text-[10px] font-headlines uppercase tracking-[0.2em]",
+                            env.id === "local" && !monitorLocal ? "text-stone-600" :
                             health.up ? "text-green-400" : "text-red-400"
                           )}>
-                            {health.up ? "ONLINE" : "OFFLINE"}
+                            {env.id === "local" && !monitorLocal ? "DISABLED" : (health.up ? "ONLINE" : "OFFLINE")}
                           </span>
                        </div>
                        <div className="flex items-center justify-between">
                           <span className="text-[10px] text-stone-600 font-bold uppercase tracking-widest">Latency</span>
-                          <span className="text-[10px] font-mono text-stone-400 tracking-widest">{health.latency}ms</span>
+                          <span className="text-[10px] font-mono text-stone-400 tracking-widest">
+                            {env.id === "local" && !monitorLocal ? "---" : `${health.latency}ms`}
+                          </span>
                        </div>
                        
                        <div className="pt-2">
