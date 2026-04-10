@@ -7,6 +7,12 @@ import { DEFAULT_ENVIRONMENTS, Environment } from "@/lib/environments";
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+// When NEXT_PUBLIC_MONITOR_LOCAL=false, local is excluded from the monitoring loop
+const MONITOR_LOCAL = process.env.NEXT_PUBLIC_MONITOR_LOCAL !== "false";
+const MONITORED_ENVIRONMENTS = MONITOR_LOCAL
+  ? DEFAULT_ENVIRONMENTS
+  : DEFAULT_ENVIRONMENTS.filter(e => e.id !== "local");
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [activeEnvId, setActiveEnvId] = useState<string>("local");
   const [monitoringEnabled, _setMonitoringEnabled] = useState<boolean>(true);
@@ -120,7 +126,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const healthResults: Record<string, { up: boolean; latency: number }> = {};
 
     try {
-      await Promise.all(DEFAULT_ENVIRONMENTS.map(async (env) => {
+      await Promise.all(MONITORED_ENVIRONMENTS.map(async (env) => {
         const start = Date.now();
         try {
           const proxyRes = await fetch(`/api/proxy-ping?url=${encodeURIComponent(env.healthUrl)}`, { cache: 'no-store' });
@@ -158,6 +164,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const pingEnvironment = async (id: string) => {
+    if (id === "local" && !MONITOR_LOCAL) return;
     const env = DEFAULT_ENVIRONMENTS.find(e => e.id === id);
     if (!env) return;
 
@@ -222,6 +229,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     lastChecked,
     selectedPeriod,
     fetchingHistory,
+    monitorLocal: MONITOR_LOCAL,
     addEnvironment,
     updateEnvironment,
     removeEnvironment,

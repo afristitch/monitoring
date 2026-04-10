@@ -55,7 +55,8 @@ export default function SettingsPage() {
     lastChecked,
     refreshHealth,
     pingEnvironment,
-    fetchHistory
+    fetchHistory,
+    monitorLocal
   } = useSettings();
 
   const [pinging, setPinging] = useState<Record<string, boolean>>({});
@@ -103,7 +104,10 @@ export default function SettingsPage() {
                     key={env.id} 
                     className={cn(
                       "p-6 rounded-2xl border transition-all duration-300",
-                      isActive 
+                      // Local disabled state
+                      env.id === "local" && !monitorLocal
+                        ? "bg-white/[0.01] border-white/[0.03] opacity-40 grayscale"
+                        : isActive 
                         ? "bg-accent/[0.03] border-accent/20 shadow-[0_0_30px_rgba(255,255,255,0.02)]" 
                         : "bg-white/[0.02] border-white/5 opacity-80 hover:opacity-100 hover:border-white/10"
                     )}
@@ -117,6 +121,9 @@ export default function SettingsPage() {
                            <ShieldCheck className="w-4 h-4" />
                          </div>
                          <h4 className="text-xs font-bold uppercase tracking-widest">{env.name}</h4>
+                         {env.id === "local" && !monitorLocal && (
+                           <span className="text-[9px] font-bold uppercase tracking-widest text-stone-600 border border-stone-700 rounded px-1.5 py-0.5">Disabled</span>
+                         )}
                       </div>
                       <div className={cn(
                         "w-2 h-2 rounded-full",
@@ -127,12 +134,12 @@ export default function SettingsPage() {
                           e.stopPropagation();
                           handlePing(env.id);
                         }}
-                        disabled={pinging[env.id]}
+                        disabled={pinging[env.id] || (env.id === "local" && !monitorLocal)}
                         className={cn(
                           "ml-2 p-1.5 rounded-lg bg-white/5 border border-white/5 hover:border-accent/40 text-stone-500 hover:text-accent transition-all",
-                          pinging[env.id] && "opacity-50 cursor-not-allowed"
+                          (pinging[env.id] || (env.id === "local" && !monitorLocal)) && "opacity-50 cursor-not-allowed pointer-events-none"
                         )}
-                        title="Ping Infrastructure"
+                        title={env.id === "local" && !monitorLocal ? "Local monitoring disabled" : "Ping Infrastructure"}
                       >
                         {pinging[env.id] ? (
                           <Loader2 className="w-3 h-3 animate-spin" />

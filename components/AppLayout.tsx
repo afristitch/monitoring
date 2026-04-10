@@ -12,7 +12,7 @@ import { Activity, ShieldCheck, ShieldAlert } from "lucide-react";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const { healthStatus, environmentsHealth, environments, activeEnvId } = useSettings();
+  const { healthStatus, environmentsHealth, environments, activeEnvId, monitorLocal } = useSettings();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -52,21 +52,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             const health = environmentsHealth[env.id] || { up: true, latency: 0 };
             const isActive = env.id === activeEnvId;
             const shortCode = env.name.charAt(0);
+            const isDisabled = env.id === "local" && !monitorLocal;
 
             return (
               <div 
                 key={env.id}
-                title={`${env.name}: ${health.up ? 'Up' : 'Down'} (${health.latency || 0}ms)`}
+                title={isDisabled ? `${env.name}: Monitoring disabled` : `${env.name}: ${health.up ? 'Up' : 'Down'} (${health.latency || 0}ms)`}
                 className={cn(
                   "relative group flex items-center justify-center w-9 h-9 rounded-xl border transition-all duration-300",
-                  isActive 
+                  isDisabled
+                    ? "bg-black/20 border-white/[0.03] opacity-30 grayscale"
+                    : isActive 
                     ? "bg-white/10 border-white/20 shadow-lg scale-110" 
                     : "bg-black/40 border-white/5 hover:border-white/10"
                 )}
               >
                 <span className={cn(
                   "text-[11px] font-headlines transition-colors",
-                  health.up ? "text-stone-300" : "text-red-500 animate-pulse"
+                  isDisabled ? "text-stone-600" : health.up ? "text-stone-300" : "text-red-500 animate-pulse"
                 )}>
                   {shortCode}
                 </span>
@@ -74,12 +77,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 {/* Status LED */}
                 <div className={cn(
                   "absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-black",
-                  health.up ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]" : "bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.4)]"
+                  isDisabled 
+                    ? "bg-stone-700"
+                    : health.up ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]" : "bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.4)]"
                 )} />
 
                 {/* Hover Tooltip - Name */}
                 <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-black/90 border border-white/10 rounded text-[9px] font-bold text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                  {env.name}
+                  {isDisabled ? `${env.name} (off)` : env.name}
                 </div>
               </div>
             );

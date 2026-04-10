@@ -29,6 +29,7 @@ export interface SettingsContextType {
   lastChecked: Date | null;
   selectedPeriod: '7d' | '30d';
   fetchingHistory: boolean;
+  monitorLocal: boolean;
   addEnvironment: (env: Omit<Environment, 'id'>) => void;
   updateEnvironment: (id: string, env: Partial<Environment>) => void;
   removeEnvironment: (id: string) => void;
