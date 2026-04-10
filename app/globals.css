@@ -1,26 +1,111 @@
 @import "tailwindcss";
 
+@theme {
+  --color-accent: #FFFFFF;
+  --color-deep-black: #000000;
+  --color-surface-gray: #0A0A0A;
+  --color-stone: #F2F0EB;
+  --color-stone-500: #78716C;
+
+  --font-headlines: var(--font-varela-round), system-ui, sans-serif;
+  --font-subtitles: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  scrollbar-gutter: stable;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.font-headlines {
+  font-family: var(--font-varela-round), system-ui, sans-serif;
+}
+
+.font-subtitles {
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+}
+
+/* Cinematic Grain Overlay */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Custom Utilities */
+.text-balance {
+  text-wrap: balance;
+}
+
+.tracking-cinematic {
+  letter-spacing: 0.2em;
+}
+
+@keyframes slow-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+
+.animate-slow-zoom {
+  animation: slow-zoom 20s ease-in-out infinite alternate;
+}
+
+/* Premium Card Style */
+.premium-card {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+
+/* Scrollbar Style */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
 }
