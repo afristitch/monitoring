@@ -15,13 +15,18 @@ import {
   Save,
   BarChart3,
   Lock,
-  Loader2
+  Loader2,
+  ShieldAlert,
+  Info,
+  Smartphone,
+  Bell,
+  Download
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSettings } from "@/context/SettingsProvider";
 import { useAuth } from "@/context/AuthContext";
 import { ServiceHealth, HealthHistoryItem } from "@/context/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { cn } from "@/lib/utils";
 import {
@@ -56,10 +61,45 @@ export default function SettingsPage() {
     refreshHealth,
     pingEnvironment,
     fetchHistory,
-    monitorLocal
+    monitorLocal,
+    maintenanceMode,
+    maintenanceMessage: providerMaintenanceMessage,
+    setMaintenanceMode,
+    refreshMaintenanceStatus,
+    latestIosVersion: providerIosVersion,
+    latestAndroidVersion: providerAndroidVersion,
+    iosUpdateUrl: providerIosUrl,
+    androidUpdateUrl: providerAndroidUrl,
+    forceUpdate: providerForceUpdate,
+    updateAppVersions
   } = useSettings();
 
   const [pinging, setPinging] = useState<Record<string, boolean>>({});
+  const [localMaintenanceMessage, setLocalMaintenanceMessage] = useState(providerMaintenanceMessage);
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
+
+  // App Distribution Local State
+  const [localIosVersion, setLocalIosVersion] = useState(providerIosVersion);
+  const [localAndroidVersion, setLocalAndroidVersion] = useState(providerAndroidVersion);
+  const [localIosUrl, setLocalIosUrl] = useState(providerIosUrl);
+  const [localAndroidUrl, setLocalAndroidUrl] = useState(providerAndroidUrl);
+  const [localForceUpdate, setLocalForceUpdate] = useState(providerForceUpdate);
+  const [notifyUsers, setNotifyUsers] = useState(false);
+  const [releasing, setReleasing] = useState(false);
+
+  // Sync local version state when provider state changes
+  useEffect(() => {
+    setLocalIosVersion(providerIosVersion);
+    setLocalAndroidVersion(providerAndroidVersion);
+    setLocalIosUrl(providerIosUrl);
+    setLocalAndroidUrl(providerAndroidUrl);
+    setLocalForceUpdate(providerForceUpdate);
+  }, [providerIosVersion, providerAndroidVersion, providerIosUrl, providerAndroidUrl, providerForceUpdate]);
+
+  // Sync local message when provider message changes (e.g. on initial load or refresh)
+  useEffect(() => {
+    setLocalMaintenanceMessage(providerMaintenanceMessage);
+  }, [providerMaintenanceMessage]);
 
   const handlePing = async (id: string) => {
     setPinging(prev => ({ ...prev, [id]: true }));
@@ -318,6 +358,268 @@ export default function SettingsPage() {
                 <RefreshCw className="w-4 h-4" />
                 Force Sync Now
               </button>
+            </div>
+          </section>
+
+          {/* Maintenance Mode Control */}
+          <section className="premium-card p-8 lg:col-span-2">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-red-500/10 rounded-xl text-red-400">
+                  <ShieldAlert className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-headlines text-md uppercase tracking-wider">System Guard</h3>
+                  <p className="text-[10px] text-stone-600 uppercase tracking-widest font-bold">Public Traffic Control</p>
+                </div>
+              </div>
+              
+              <div className={cn(
+                "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border",
+                maintenanceMode ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-green-500/10 text-green-400 border-green-500/20"
+              )}>
+                {maintenanceMode ? "MAINTENANCE ACTIVE" : "SYSTEM LIVE"}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-stone-200">Global Maintenance Mode</p>
+                    <p className="text-xs text-stone-500">Redirects all public traffic to a maintenance screen.</p>
+                  </div>
+                  <button 
+                    disabled={!isSuperAdmin || savingMaintenance}
+                    onClick={() => setMaintenanceMode(!maintenanceMode, localMaintenanceMessage)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-all relative",
+                      maintenanceMode ? 'bg-red-500' : 'bg-white/10',
+                      (!isSuperAdmin || savingMaintenance) && 'opacity-50 cursor-not-allowed'
+                    )}
+                  >
+                    <div className={cn(
+                      "absolute top-1 w-4 h-4 rounded-full bg-black transition-all",
+                      maintenanceMode ? 'left-7' : 'left-1'
+                    )} />
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl bg-stone-900/50 border border-white/5 space-y-3">
+                  <div className="flex items-center gap-2 text-stone-400">
+                    <Info className="w-4 h-4 text-accent" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">SuperAdmin Notice</span>
+                  </div>
+                  <p className="text-xs text-stone-500 leading-relaxed">
+                    While maintenance is active, only SuperAdmins and internal API nodes can bypass the block. 
+                    Ensure you have updated the message before activating.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">Public Display Message</label>
+                  <textarea 
+                    value={localMaintenanceMessage}
+                    onChange={(e) => setLocalMaintenanceMessage(e.target.value)}
+                    disabled={!isSuperAdmin || savingMaintenance}
+                    placeholder="We are currently performing scheduled maintenance..."
+                    className="w-full h-32 bg-black/40 border border-white/5 rounded-xl p-4 text-sm text-stone-300 focus:border-accent/40 focus:ring-1 focus:ring-accent/40 transition-all resize-none outline-none"
+                  />
+                </div>
+
+                <button 
+                  disabled={!isSuperAdmin || savingMaintenance || (localMaintenanceMessage === providerMaintenanceMessage)}
+                  onClick={async () => {
+                    setSavingMaintenance(true);
+                    try {
+                      await setMaintenanceMode(maintenanceMode, localMaintenanceMessage);
+                    } finally {
+                      setSavingMaintenance(false);
+                    }
+                  }}
+                  className="w-full py-4 bg-accent/10 border border-accent/20 rounded-xl text-xs font-bold uppercase tracking-widest text-accent hover:bg-accent/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+                >
+                  {savingMaintenance ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Apply Guard Configuration
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* App Distribution & Releases */}
+          <section className="premium-card p-8 lg:col-span-2">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-accent/10 rounded-xl text-accent">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-headlines text-md uppercase tracking-wider">App Distribution</h3>
+                  <p className="text-[10px] text-stone-600 uppercase tracking-widest font-bold">Mobile Release Control</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                 <div className="flex -space-x-2">
+                    <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-stone-500 font-bold">iOS</div>
+                    <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-stone-500 font-bold">AD</div>
+                 </div>
+                 <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest ml-1">Current: {providerIosVersion} / {providerAndroidVersion}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">Latest iOS</label>
+                    <input 
+                      type="text"
+                      value={localIosVersion}
+                      onChange={(e) => setLocalIosVersion(e.target.value)}
+                      disabled={!isSuperAdmin || releasing}
+                      placeholder="1.0.0"
+                      className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-stone-300 focus:border-accent/40 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">Latest Android</label>
+                    <input 
+                      type="text"
+                      value={localAndroidVersion}
+                      onChange={(e) => setLocalAndroidVersion(e.target.value)}
+                      disabled={!isSuperAdmin || releasing}
+                      placeholder="1.0.0"
+                      className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-stone-300 focus:border-accent/40 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-600 uppercase tracking-widest flex items-center gap-2">
+                      <Download className="w-3 h-3" />
+                      iOS Update URL
+                    </label>
+                    <input 
+                      type="text"
+                      value={localIosUrl}
+                      onChange={(e) => setLocalIosUrl(e.target.value)}
+                      disabled={!isSuperAdmin || releasing}
+                      placeholder="https://apps.apple.com/..."
+                      className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-mono text-stone-400 focus:border-accent/40 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-600 uppercase tracking-widest flex items-center gap-2">
+                      <Download className="w-3 h-3" />
+                      Android Update URL
+                    </label>
+                    <input 
+                      type="text"
+                      value={localAndroidUrl}
+                      onChange={(e) => setLocalAndroidUrl(e.target.value)}
+                      disabled={!isSuperAdmin || releasing}
+                      placeholder="https://play.google.com/..."
+                      className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-mono text-stone-400 focus:border-accent/40 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
+                   <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-stone-200">Critical Update (Forced)</p>
+                        <p className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Blocks old app sessions</p>
+                      </div>
+                      <button 
+                        disabled={!isSuperAdmin || releasing}
+                        onClick={() => setLocalForceUpdate(!localForceUpdate)}
+                        className={cn(
+                          "w-12 h-6 rounded-full transition-all relative",
+                          localForceUpdate ? 'bg-accent' : 'bg-white/10',
+                          (!isSuperAdmin || releasing) && 'opacity-50 cursor-not-allowed'
+                        )}
+                      >
+                        <div className={cn(
+                          "absolute top-1 w-4 h-4 rounded-full bg-black transition-all",
+                          localForceUpdate ? 'left-7' : 'left-1'
+                        )} />
+                      </button>
+                   </div>
+
+                   <hr className="border-white/5" />
+
+                   <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Bell className={cn("w-3 h-3", notifyUsers ? "text-accent animate-pulse" : "text-stone-600")} />
+                          <p className="text-sm font-medium text-stone-200">Broadcast Update Alert</p>
+                        </div>
+                        <p className="text-[10px] text-stone-500 font-bold uppercase tracking-wider text-accent/80">Trigger Push Notifications</p>
+                      </div>
+                      <button 
+                        disabled={!isSuperAdmin || releasing}
+                        onClick={() => setNotifyUsers(!notifyUsers)}
+                        className={cn(
+                          "w-12 h-6 rounded-full transition-all relative border border-accent/20",
+                          notifyUsers ? 'bg-accent/20' : 'bg-transparent',
+                          (!isSuperAdmin || releasing) && 'opacity-50 cursor-not-allowed'
+                        )}
+                      >
+                        <div className={cn(
+                          "absolute top-1 w-4 h-4 rounded-full transition-all",
+                          notifyUsers ? 'left-7 bg-accent shadow-[0_0_10px_rgba(var(--accent-rgb),0.5)]' : 'left-1 bg-stone-700'
+                        )} />
+                      </button>
+                   </div>
+                </div>
+
+                <div className="pt-2">
+                   <button 
+                    disabled={!isSuperAdmin || releasing || (
+                      localIosVersion === providerIosVersion && 
+                      localAndroidVersion === providerAndroidVersion && 
+                      localIosUrl === providerIosUrl && 
+                      localAndroidUrl === providerAndroidUrl && 
+                      localForceUpdate === providerForceUpdate &&
+                      !notifyUsers
+                    )}
+                    onClick={async () => {
+                      setReleasing(true);
+                      try {
+                        await updateAppVersions({
+                          latestIosVersion: localIosVersion,
+                          latestAndroidVersion: localAndroidVersion,
+                          iosUpdateUrl: localIosUrl,
+                          androidUpdateUrl: localAndroidUrl,
+                          forceUpdate: localForceUpdate,
+                          notifyUsers: notifyUsers
+                        });
+                        setNotifyUsers(false); // Reset notification toggle after success
+                      } finally {
+                        setReleasing(false);
+                      }
+                    }}
+                    className="w-full py-4 bg-accent text-black rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed shadow-[0_10px_20px_rgba(var(--accent-rgb),0.2)]"
+                  >
+                    {releasing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Smartphone className="w-4 h-4" />
+                    )}
+                    {notifyUsers ? "Release & Notify All Users" : "Sync App Versions"}
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
         </div>

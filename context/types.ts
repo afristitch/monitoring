@@ -17,6 +17,15 @@ export interface HealthHistoryItem {
   latency?: number;
 }
 
+export interface AppVersionData {
+  latestIosVersion: string;
+  latestAndroidVersion: string;
+  iosUpdateUrl: string;
+  androidUpdateUrl: string;
+  forceUpdate: boolean;
+  notifyUsers?: boolean;
+}
+
 export interface SettingsContextType {
   environments: Environment[];
   activeEnvId: string;
@@ -30,6 +39,13 @@ export interface SettingsContextType {
   selectedPeriod: '7d' | '30d';
   fetchingHistory: boolean;
   monitorLocal: boolean;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  latestIosVersion: string;
+  latestAndroidVersion: string;
+  iosUpdateUrl: string;
+  androidUpdateUrl: string;
+  forceUpdate: boolean;
   addEnvironment: (env: Omit<Environment, 'id'>) => void;
   updateEnvironment: (id: string, env: Partial<Environment>) => void;
   removeEnvironment: (id: string) => void;
@@ -40,4 +56,7 @@ export interface SettingsContextType {
   refreshHealth: () => Promise<void>;
   pingEnvironment: (id: string) => Promise<void>;
   fetchHistory: () => Promise<void>;
+  setMaintenanceMode: (enabled: boolean, message: string) => Promise<void>;
+  refreshMaintenanceStatus: () => Promise<void>;
+  updateAppVersions: (data: AppVersionData) => Promise<void>;
 }

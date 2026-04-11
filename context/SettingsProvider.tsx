@@ -27,6 +27,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [healthHistory, setHealthHistory] = useState<HealthHistoryItem[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d'>('7d');
   const [fetchingHistory, setFetchingHistory] = useState(false);
+  const [maintenanceMode, setMaintenanceModeState] = useState<boolean>(false);
+  const [maintenanceMessage, setMaintenanceMessageState] = useState<string>("");
+
+  const [latestIosVersion, setLatestIosVersion] = useState<string>("");
+  const [latestAndroidVersion, setLatestAndroidVersion] = useState<string>("");
+  const [iosUpdateUrl, setIosUpdateUrl] = useState<string>("");
+  const [androidUpdateUrl, setAndroidUpdateUrl] = useState<string>("");
+  const [forceUpdate, setForceUpdate] = useState<boolean>(false);
 
   const [environmentsHealth, setEnvironmentsHealth] = useState<Record<string, { up: boolean; latency: number }>>({});
 
@@ -45,9 +53,29 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshMaintenanceStatus = async () => {
+    try {
+      const res = await api.get("/system/maintenance");
+      if (res.success && res.data) {
+        setMaintenanceModeState(res.data.maintenanceMode);
+        setMaintenanceMessageState(res.data.maintenanceMessage || "");
+        
+        // App Distribution Stats
+        setLatestIosVersion(res.data.latestIosVersion || "");
+        setLatestAndroidVersion(res.data.latestAndroidVersion || "");
+        setIosUpdateUrl(res.data.iosUpdateUrl || "");
+        setAndroidUpdateUrl(res.data.androidUpdateUrl || "");
+        setForceUpdate(res.data.forceUpdate || false);
+      }
+    } catch (err) {
+      console.warn("Could not fetch maintenance status");
+    }
+  };
+
   // Initialize from Backend & LocalStorage
   useEffect(() => {
     fetchSettings();
+    refreshMaintenanceStatus();
     
     const savedActive = localStorage.getItem("sd_active_env");
     const savedMetrics = localStorage.getItem("sd_uptime_metrics");
@@ -202,10 +230,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [monitoringEnabled, activeEnvironment, checkInterval]);
 
-  // Management functions made into no-ops for stability
   const addEnvironment = () => {};
   const updateEnvironment = () => {};
   const removeEnvironment = () => {};
+
   const setCheckInterval = async (seconds: number) => {
     // Optimistic Update
     setCheckIntervalState(seconds);
@@ -214,6 +242,40 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       await api.patch("/system/health/settings", { checkInterval: seconds });
     } catch (err) {
       console.warn("Backend sync failed for checkInterval, using local state.");
+    }
+  };
+
+  const setMaintenanceMode = async (enabled: boolean, message: string) => {
+    // Optimistic Update
+    setMaintenanceModeState(enabled);
+    setMaintenanceMessageState(message);
+
+    try {
+      await api.patch("/system/maintenance", { 
+        maintenanceMode: enabled, 
+        maintenanceMessage: message 
+      });
+    } catch (err) {
+      console.error("Failed to update maintenance mode", err);
+      refreshMaintenanceStatus();
+      throw err;
+    }
+  };
+
+  const updateAppVersions = async (data: any) => {
+    // Optimistic UI Update
+    setLatestIosVersion(data.latestIosVersion);
+    setLatestAndroidVersion(data.latestAndroidVersion);
+    setIosUpdateUrl(data.iosUpdateUrl);
+    setAndroidUpdateUrl(data.androidUpdateUrl);
+    setForceUpdate(data.forceUpdate);
+
+    try {
+      await api.patch("/system/versions", data);
+    } catch (err) {
+      console.error("Failed to update app versions", err);
+      refreshMaintenanceStatus();
+      throw err;
     }
   };
 
@@ -244,7 +306,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSelectedPeriod,
     refreshHealth,
     pingEnvironment,
-    fetchHistory
+    fetchHistory,
+    maintenanceMode,
+    maintenanceMessage,
+    setMaintenanceMode,
+    refreshMaintenanceStatus,
+    latestIosVersion,
+    latestAndroidVersion,
+    iosUpdateUrl,
+    androidUpdateUrl,
+    forceUpdate,
+    updateAppVersions
   };
 
 
