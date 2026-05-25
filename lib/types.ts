@@ -6,6 +6,7 @@ export interface User {
     role: "SUPER_ADMIN" | "ORG_ADMIN" | "STAFF";
     organizationId?: string;
     photoUrl?: string;
+    isEmailVerified?: boolean;
 }
 
 export interface Organization {

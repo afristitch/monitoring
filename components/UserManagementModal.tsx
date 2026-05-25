@@ -43,6 +43,7 @@ export function UserManagementModal({
     email: "",
     role: "",
     photoUrl: "",
+    isEmailVerified: false,
   });
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function UserManagementModal({
         email: user.email || "",
         role: user.role || "STAFF",
         photoUrl: (user as any).photoUrl || "",
+        isEmailVerified: user.isEmailVerified || false,
       });
       setActiveTab(initialMode);
     }
@@ -248,6 +250,26 @@ export function UserManagementModal({
                         className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-sm focus:outline-none focus:border-accent/40 transition-all font-medium"
                       />
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 mt-6">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-widest">Email Verification</h4>
+                      <p className="text-[10px] text-stone-500 mt-1">Manually mark this user's email as verified.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, isEmailVerified: !formData.isEmailVerified})}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        formData.isEmailVerified ? 'bg-accent' : 'bg-stone-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          formData.isEmailVerified ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
               )}

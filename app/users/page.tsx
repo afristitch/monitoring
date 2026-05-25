@@ -21,7 +21,8 @@ import {
   Edit3,
   ShieldCheck,
   Trash2,
-  Camera
+  Camera,
+  AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -198,14 +199,14 @@ export default function UsersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                           user.role === 'SUPER_ADMIN' 
                             ? 'bg-white/20 text-white border border-white/30' 
                             : user.role === 'ORG_ADMIN'
                             ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20'
                             : 'bg-stone-400/10 text-stone-400 border border-stone-400/20'
                         }`}>
-                          {user.role === 'SUPER_ADMIN' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
+                          {user.role === 'SUPER_ADMIN' ? <Shield className="w-2.5 h-2.5" /> : <UserIcon className="w-2.5 h-2.5" />}
                           {user.role?.replace('_', ' ')}
                         </span>
                       </td>
@@ -219,6 +220,11 @@ export default function UsersPage() {
                           <div className="flex items-center gap-2 text-xs text-stone-400">
                             <Mail className="w-3 h-3" />
                             {user.email}
+                            {user.isEmailVerified ? (
+                              <ShieldCheck className="w-3 h-3 text-green-400" />
+                            ) : (
+                              <AlertCircle className="w-3 h-3 text-amber-400" />
+                            )}
                           </div>
                         </div>
                       </td>

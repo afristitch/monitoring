@@ -17,7 +17,8 @@ import {
   Settings2,
   ShieldCheck,
   Trash2,
-  Edit3
+  Edit3,
+  AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pagination } from "@/components/Pagination";
@@ -195,14 +196,14 @@ export default function OrganizationsPage() {
                             <p className="text-xs text-stone-500">{org.phone || "No phone"}</p>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                               displayStatus === 'active'
                                 ? 'bg-green-400/10 text-green-400 border border-green-400/20' 
                                 : displayStatus === 'trialing'
                                 ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
                                 : 'bg-red-400/10 text-red-400 border border-red-400/20'
                             }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${
+                              <div className={`w-1 h-1 rounded-full ${
                                  displayStatus === 'active' ? 'bg-green-400' :
                                  displayStatus === 'trialing' ? 'bg-amber-400' : 'bg-red-400'
                               }`} />
