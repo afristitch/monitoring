@@ -18,7 +18,8 @@ import {
   Activity,
   ArrowUpRight,
   TrendingDown,
-  Loader2
+  Loader2,
+  Ruler
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -39,6 +40,7 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
   const [users, setUsers] = useState<User[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [measurementsCount, setMeasurementsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'staff' | 'clients' | 'orders'>('staff');
 
@@ -53,12 +55,13 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
     }
 
     try {
-      const [orgRes, statsRes, usersRes, clientsRes, ordersRes] = await Promise.all([
+      const [orgRes, statsRes, usersRes, clientsRes, ordersRes, measurementsRes] = await Promise.all([
         api.get(`/organization/${id}`),
         api.get(`/orders/reports/financial?organizationId=${id}`),
         api.get(`/users?organizationId=${id}`),
         api.get(`/clients?organizationId=${id}&limit=50`),
-        api.get(`/orders?organizationId=${id}&limit=50`)
+        api.get(`/orders?organizationId=${id}&limit=50`),
+        api.get(`/measurements?organizationId=${id}&limit=1`).catch(() => ({ data: { total: 0 } }))
       ]);
 
       if (orgRes.success) setOrganization(orgRes.data);
@@ -66,6 +69,10 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
       if (usersRes.success) setUsers(usersRes.data.data || []);
       if (clientsRes.success) setClients(clientsRes.data.data || []);
       if (ordersRes.success) setOrders(ordersRes.data.data || []);
+      if (measurementsRes) {
+        const mCount = measurementsRes.data?.pagination?.totalItems || measurementsRes.data?.pagination?.total || measurementsRes.data?.total || (Array.isArray(measurementsRes.data?.data) ? measurementsRes.data.data.length : 0);
+        setMeasurementsCount(mCount);
+      }
     } catch (err) {
       console.error("Failed to fetch organization details", err);
     } finally {
@@ -131,6 +138,12 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
       icon: Users, 
       color: "text-white"
     },
+    { 
+      label: "Measurements", 
+      value: measurementsCount.toString(), 
+      icon: Ruler, 
+      color: "text-white"
+    },
   ];
 
   return (
@@ -192,7 +205,7 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
           {kpis.map((kpi, index) => (
             <motion.div
               key={kpi.label}

@@ -19,7 +19,8 @@ import {
   Trash2,
   Edit3,
   AlertCircle,
-  Users
+  Users,
+  Ruler
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pagination } from "@/components/Pagination";
@@ -52,13 +53,17 @@ export default function OrganizationsPage() {
           const orgs = response.data.data || [];
           const orgsWithCounts = await Promise.all(
             orgs.map(async (org: Organization) => {
-              if (org.clientsCount !== undefined) return org;
+              if (org.clientsCount !== undefined && org.measurementsCount !== undefined) return org;
               try {
-                const clientsRes = await api.get(`/clients?organizationId=${org._id}&limit=1`);
-                const count = clientsRes.data?.pagination?.totalItems || clientsRes.data?.pagination?.total || clientsRes.data?.total || (Array.isArray(clientsRes.data?.data) ? clientsRes.data.data.length : 0);
-                return { ...org, clientsCount: count };
+                const [clientsRes, measurementsRes] = await Promise.all([
+                  api.get(`/clients?organizationId=${org._id}&limit=1`),
+                  api.get(`/measurements?organizationId=${org._id}&limit=1`).catch(() => ({ data: { total: 0 } }))
+                ]);
+                const cCount = clientsRes.data?.pagination?.totalItems || clientsRes.data?.pagination?.total || clientsRes.data?.total || (Array.isArray(clientsRes.data?.data) ? clientsRes.data.data.length : 0);
+                const mCount = measurementsRes.data?.pagination?.totalItems || measurementsRes.data?.pagination?.total || measurementsRes.data?.total || (Array.isArray(measurementsRes.data?.data) ? measurementsRes.data.data.length : 0);
+                return { ...org, clientsCount: cCount, measurementsCount: mCount };
               } catch (e) {
-                return { ...org, clientsCount: 0 };
+                return { ...org, clientsCount: 0, measurementsCount: 0 };
               }
             })
           );
@@ -94,13 +99,17 @@ export default function OrganizationsPage() {
         const orgs = response.data.data || [];
         const orgsWithCounts = await Promise.all(
           orgs.map(async (org: Organization) => {
-            if (org.clientsCount !== undefined) return org;
+            if (org.clientsCount !== undefined && org.measurementsCount !== undefined) return org;
             try {
-              const clientsRes = await api.get(`/clients?organizationId=${org._id}&limit=1`);
-              const count = clientsRes.data?.pagination?.totalItems || clientsRes.data?.pagination?.total || clientsRes.data?.total || (Array.isArray(clientsRes.data?.data) ? clientsRes.data.data.length : 0);
-              return { ...org, clientsCount: count };
+              const [clientsRes, measurementsRes] = await Promise.all([
+                api.get(`/clients?organizationId=${org._id}&limit=1`),
+                api.get(`/measurements?organizationId=${org._id}&limit=1`).catch(() => ({ data: { total: 0 } }))
+              ]);
+              const cCount = clientsRes.data?.pagination?.totalItems || clientsRes.data?.pagination?.total || clientsRes.data?.total || (Array.isArray(clientsRes.data?.data) ? clientsRes.data.data.length : 0);
+              const mCount = measurementsRes.data?.pagination?.totalItems || measurementsRes.data?.pagination?.total || measurementsRes.data?.total || (Array.isArray(measurementsRes.data?.data) ? measurementsRes.data.data.length : 0);
+              return { ...org, clientsCount: cCount, measurementsCount: mCount };
             } catch (e) {
-              return { ...org, clientsCount: 0 };
+              return { ...org, clientsCount: 0, measurementsCount: 0 };
             }
           })
         );
@@ -171,6 +180,7 @@ export default function OrganizationsPage() {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Contact</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Status</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Clients</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Measurements</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Ends At</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500 text-right">Actions</th>
                 </tr>
@@ -178,13 +188,13 @@ export default function OrganizationsPage() {
               <tbody className="divide-y divide-white/5">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center">
+                    <td colSpan={7} className="px-6 py-20 text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-white/20 mx-auto" />
                     </td>
                   </tr>
                 ) : organizations.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-stone-500">
+                    <td colSpan={7} className="px-6 py-20 text-center text-stone-500">
                       No organizations found.
                     </td>
                   </tr>
@@ -242,6 +252,12 @@ export default function OrganizationsPage() {
                             <div className="flex items-center gap-2">
                               <Users className="w-4 h-4 text-stone-500" />
                               <span className="font-bold">{org.clientsCount ?? 0}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Ruler className="w-4 h-4 text-stone-500" />
+                              <span className="font-bold">{org.measurementsCount ?? 0}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-stone-500">

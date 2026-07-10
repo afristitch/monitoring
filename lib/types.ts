@@ -21,6 +21,7 @@ export interface Organization {
     createdAt?: string;
     updatedAt?: string;
     clientsCount?: number;
+    measurementsCount?: number;
 }
 
 export interface Client {
