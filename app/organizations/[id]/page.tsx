@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { api } from "@/lib/api-client";
-import { Organization, User } from "@/lib/types";
+import { Organization, User, Client, Order } from "@/lib/types";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { 
   Building2, 
@@ -37,7 +37,10 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'staff' | 'clients' | 'orders'>('staff');
 
   // Management State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,15 +53,19 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
     }
 
     try {
-      const [orgRes, statsRes, usersRes] = await Promise.all([
+      const [orgRes, statsRes, usersRes, clientsRes, ordersRes] = await Promise.all([
         api.get(`/organization/${id}`),
         api.get(`/orders/reports/financial?organizationId=${id}`),
-        api.get(`/users?organizationId=${id}`)
+        api.get(`/users?organizationId=${id}`),
+        api.get(`/clients?organizationId=${id}&limit=50`),
+        api.get(`/orders?organizationId=${id}&limit=50`)
       ]);
 
       if (orgRes.success) setOrganization(orgRes.data);
       if (statsRes.success) setStats(statsRes.data);
       if (usersRes.success) setUsers(usersRes.data.data || []);
+      if (clientsRes.success) setClients(clientsRes.data.data || []);
+      if (ordersRes.success) setOrders(ordersRes.data.data || []);
     } catch (err) {
       console.error("Failed to fetch organization details", err);
     } finally {
@@ -118,6 +125,12 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
       icon: ShoppingBag, 
       color: "text-white"
     },
+    { 
+      label: "Total Clients", 
+      value: clients.length.toString(), 
+      icon: Users, 
+      color: "text-white"
+    },
   ];
 
   return (
@@ -131,7 +144,7 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
         {/* Profile Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+            <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
               {organization.logoUrl ? (
                 <img src={organization.logoUrl} alt={organization.name} className="w-full h-full object-cover" />
               ) : (
@@ -179,7 +192,7 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {kpis.map((kpi, index) => (
             <motion.div
               key={kpi.label}
@@ -201,35 +214,111 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
           ))}
         </div>
 
-        {/* Users Table */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-stone-500" />
-            <h3 className="font-headlines text-xl uppercase">Team Members</h3>
-          </div>
-          
-          <div className="premium-card overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/5">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Name</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Contact</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Role</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {users.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-10 text-center text-stone-500 italic">No members found for this organization.</td>
+        {/* Tabs */}
+        <div className="flex items-center gap-8 border-b border-white/10 pb-[1px]">
+          <button 
+            onClick={() => setActiveTab('staff')}
+            className={`font-headlines text-xl uppercase transition-all pb-4 ${activeTab === 'staff' ? 'text-white border-b-2 border-accent' : 'text-stone-500 hover:text-stone-300'}`}
+          >
+            Team Members ({users.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('clients')}
+            className={`font-headlines text-xl uppercase transition-all pb-4 ${activeTab === 'clients' ? 'text-white border-b-2 border-accent' : 'text-stone-500 hover:text-stone-300'}`}
+          >
+            Clients ({clients.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('orders')}
+            className={`font-headlines text-xl uppercase transition-all pb-4 ${activeTab === 'orders' ? 'text-white border-b-2 border-accent' : 'text-stone-500 hover:text-stone-300'}`}
+          >
+            Recent Orders ({orders.length})
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'staff' && (
+          <div className="space-y-6">
+            <div className="premium-card overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/5">
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Name</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Contact</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Role</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500 text-right">Status</th>
                   </tr>
-                ) : (
-                    users.map((user, index) => {
-                      const avatarUrl = user.photoUrl || (user as any).photo || (user as any).avatar || (user as any).profile?.photo || (user as any).profile?.avatar;
-                      
-                      return (
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {users.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-10 text-center text-stone-500 italic">No members found for this organization.</td>
+                    </tr>
+                  ) : (
+                      users.map((user, index) => {
+                        const avatarUrl = user.photoUrl || (user as any).photo || (user as any).avatar || (user as any).profile?.photo || (user as any).profile?.avatar;
+                        
+                        return (
+                          <motion.tr 
+                            key={user._id}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="hover:bg-white/[0.02] transition-colors"
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold overflow-hidden border border-white/10">
+                                  {avatarUrl ? (
+                                    <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    user.name.charAt(0)
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium">{user.name}</span>
+                              </div>
+                            </td>
+                        <td className="px-6 py-4 text-sm font-medium text-stone-400">
+                          {user.email}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-[10px] uppercase font-bold tracking-widest text-stone-500 bg-white/5 px-2 py-1 rounded">
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className="inline-block w-2 h-2 rounded-full bg-green-400" />
+                        </td>
+                      </motion.tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'clients' && (
+          <div className="space-y-6">
+            <div className="premium-card overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/5">
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Client Name</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Contact</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500 text-right">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {clients.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-10 text-center text-stone-500 italic">No clients found.</td>
+                    </tr>
+                  ) : (
+                      clients.map((client, index) => (
                         <motion.tr 
-                          key={user._id}
+                          key={client._id}
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
@@ -238,34 +327,92 @@ export default function OrganizationDetailPage({ params }: { params: Promise<{ i
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold overflow-hidden border border-white/10">
-                                {avatarUrl ? (
-                                  <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                                {client.photoUrl ? (
+                                  <img src={client.photoUrl} alt={client.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  user.name.charAt(0)
+                                  client.name.charAt(0)
                                 )}
                               </div>
-                              <span className="text-sm font-medium">{user.name}</span>
+                              <span className="text-sm font-medium">{client.name}</span>
                             </div>
                           </td>
-                      <td className="px-6 py-4 text-sm font-medium text-stone-400">
-                        {user.email}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-stone-500 bg-white/5 px-2 py-1 rounded">
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="inline-block w-2 h-2 rounded-full bg-green-400" />
-                      </td>
-                    </motion.tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          <td className="px-6 py-4 text-sm font-medium text-stone-400">
+                            {client.phone}
+                            {client.email && <span className="block text-xs text-stone-500">{client.email}</span>}
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm text-stone-500">
+                            {formatDate(client.createdAt || "")}
+                          </td>
+                        </motion.tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="space-y-6">
+            <div className="premium-card overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/5">
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Order #</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Client</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Amount</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Status</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500 text-right">Due Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-stone-500 italic">No orders found.</td>
+                    </tr>
+                  ) : (
+                      orders.map((order, index) => {
+                        const clientName = typeof order.client === 'string' ? order.client : order.client?.name || 'Unknown Client';
+                        return (
+                          <motion.tr 
+                            key={order._id}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="hover:bg-white/[0.02] transition-colors"
+                          >
+                            <td className="px-6 py-4 text-sm font-bold">
+                              {order.orderNumber}
+                            </td>
+                            <td className="px-6 py-4 text-sm font-medium text-stone-300">
+                              {clientName}
+                            </td>
+                            <td className="px-6 py-4 text-sm font-medium">
+                              <span className="text-white">{formatCurrency(order.amount)}</span>
+                              <span className="block text-[10px] text-stone-500 uppercase tracking-widest mt-1">Paid: {formatCurrency(order.amountPaid)}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded border ${
+                                order.status === 'completed' || order.status === 'delivered' ? 'bg-green-400/10 text-green-400 border-green-400/20' :
+                                order.status === 'pending' ? 'bg-amber-400/10 text-amber-400 border-amber-400/20' :
+                                order.status === 'cancelled' ? 'bg-red-400/10 text-red-400 border-red-400/20' :
+                                'bg-blue-400/10 text-blue-400 border-blue-400/20'
+                              }`}>
+                                {order.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right text-sm text-stone-500">
+                              {formatDate(order.dueDate || "")}
+                            </td>
+                          </motion.tr>
+                        );
+                      })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       <ManagementModal 

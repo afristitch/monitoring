@@ -178,7 +178,7 @@ export default function OrganizationsPage() {
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white overflow-hidden">
+                              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white overflow-hidden">
                                 {org.logoUrl ? (
                                   <img src={org.logoUrl} alt={org.name} className="w-full h-full object-cover" />
                                 ) : (

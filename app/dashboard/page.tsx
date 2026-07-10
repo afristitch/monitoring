@@ -55,6 +55,7 @@ export default function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("7m");
   const [orgCount, setOrgCount] = useState(0);
   const [userCount, setUserCount] = useState(0);
+  const [clientCount, setClientCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(false);
 
@@ -75,15 +76,17 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        const [finRes, orgRes, userRes] = await Promise.all([
+        const [finRes, orgRes, userRes, clientRes] = await Promise.all([
           api.get("/orders/reports/financial"),
           api.get("/organization/all"),
-          api.get("/users")
+          api.get("/users"),
+          api.get("/clients")
         ]);
 
         if (finRes.success) setStats(finRes.data);
         if (orgRes.success) setOrgCount(orgRes.data.pagination?.total || orgRes.data.data?.length || 0);
         if (userRes.success) setUserCount(userRes.data.pagination?.total || userRes.data.data?.length || 0);
+        if (clientRes.success) setClientCount(clientRes.data.pagination?.total || clientRes.data.data?.length || 0);
         
         // Fetch initial chart data
         await fetchChartData(selectedPeriod);
@@ -138,6 +141,14 @@ export default function DashboardPage() {
       trend: "-1.2%",
       trendUp: false
     },
+    { 
+      label: "Total Clients", 
+      value: clientCount.toString(), 
+      icon: Users, 
+      color: "text-white",
+      trend: "+8.4%",
+      trendUp: true
+    },
   ];
 
   return (
@@ -155,7 +166,7 @@ export default function DashboardPage() {
         </header>
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {kpis.map((kpi, index) => (
             <motion.div
               key={kpi.label}
