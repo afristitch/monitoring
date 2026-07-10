@@ -20,6 +20,7 @@ export interface Organization {
     subscriptionEndsAt?: string;
     createdAt?: string;
     updatedAt?: string;
+    clientsCount?: number;
 }
 
 export interface Client {

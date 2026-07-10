@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   Trash2,
   Edit3,
-  AlertCircle
+  AlertCircle,
+  Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pagination } from "@/components/Pagination";
@@ -48,7 +49,20 @@ export default function OrganizationsPage() {
       try {
         const response = await api.get(`/organization/all?search=${search}&page=${currentPage}&limit=${ITEMS_PER_PAGE}&status=${statusFilter}`);
         if (response.success) {
-          setOrganizations(response.data.data || []);
+          const orgs = response.data.data || [];
+          const orgsWithCounts = await Promise.all(
+            orgs.map(async (org: Organization) => {
+              if (org.clientsCount !== undefined) return org;
+              try {
+                const clientsRes = await api.get(`/clients?organizationId=${org._id}&limit=1`);
+                const count = clientsRes.data?.pagination?.totalItems || clientsRes.data?.pagination?.total || clientsRes.data?.total || (Array.isArray(clientsRes.data?.data) ? clientsRes.data.data.length : 0);
+                return { ...org, clientsCount: count };
+              } catch (e) {
+                return { ...org, clientsCount: 0 };
+              }
+            })
+          );
+          setOrganizations(orgsWithCounts);
           setTotalPages(response.data.pagination?.totalPages || 1);
         }
       } catch (err) {
@@ -77,7 +91,20 @@ export default function OrganizationsPage() {
     try {
       const response = await api.get(`/organization/all?search=${search}&page=${currentPage}&limit=${ITEMS_PER_PAGE}&status=${statusFilter}`);
       if (response.success) {
-        setOrganizations(response.data.data || []);
+        const orgs = response.data.data || [];
+        const orgsWithCounts = await Promise.all(
+          orgs.map(async (org: Organization) => {
+            if (org.clientsCount !== undefined) return org;
+            try {
+              const clientsRes = await api.get(`/clients?organizationId=${org._id}&limit=1`);
+              const count = clientsRes.data?.pagination?.totalItems || clientsRes.data?.pagination?.total || clientsRes.data?.total || (Array.isArray(clientsRes.data?.data) ? clientsRes.data.data.length : 0);
+              return { ...org, clientsCount: count };
+            } catch (e) {
+              return { ...org, clientsCount: 0 };
+            }
+          })
+        );
+        setOrganizations(orgsWithCounts);
         setTotalPages(response.data.pagination?.totalPages || 1);
       }
     } catch (err) {
@@ -143,6 +170,7 @@ export default function OrganizationsPage() {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Business Name</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Contact</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Status</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Clients</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500">Ends At</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-stone-500 text-right">Actions</th>
                 </tr>
@@ -150,13 +178,13 @@ export default function OrganizationsPage() {
               <tbody className="divide-y divide-white/5">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center">
+                    <td colSpan={6} className="px-6 py-20 text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-white/20 mx-auto" />
                     </td>
                   </tr>
                 ) : organizations.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center text-stone-500">
+                    <td colSpan={6} className="px-6 py-20 text-center text-stone-500">
                       No organizations found.
                     </td>
                   </tr>
@@ -209,6 +237,12 @@ export default function OrganizationsPage() {
                               }`} />
                               {displayStatus}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-stone-500" />
+                              <span className="font-bold">{org.clientsCount ?? 0}</span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-stone-500">
                             {org.subscriptionEndsAt ? formatDate(org.subscriptionEndsAt) : "Open Ended"}
