@@ -64,7 +64,11 @@ export function UserManagementModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.put(`/users/${user._id}/admin`, formData);
+      const payload = {
+        ...formData,
+        organizationId: user.organizationId
+      };
+      const res = await api.put(`/users/${user._id}/admin`, payload);
       if (res.success) {
         onUpdate();
         onClose();

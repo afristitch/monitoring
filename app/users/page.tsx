@@ -177,7 +177,7 @@ export default function UsersPage() {
                 ) : (
                   users.map((user, index) => (
                     <motion.tr
-                      key={user._id}
+                      key={`${user._id}-${user.organizationId || index}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
