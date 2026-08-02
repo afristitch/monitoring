@@ -24,11 +24,15 @@ export default function LoginPage() {
     try {
       const response = await api.post("/auth/login", { email, password });
       if (response.success) {
-        // Double check if the user is a SUPER_ADMIN
-        if (response.data.user.role !== "SUPER_ADMIN") {
+        // Double check if the user is a SUPER_ADMIN in any of their memberships
+        const isSuperAdmin = response.data.memberships?.some((m: any) => m.role === "SUPER_ADMIN");
+        if (!isSuperAdmin) {
           setError("Access Denied: SuperAdmin privileges required.");
           return;
         }
+        
+        // Inject role into the user object so that other parts of the admin panel work
+        response.data.user.role = "SUPER_ADMIN";
         login(response.data);
       } else {
         setError(response.message || "Invalid credentials");
