@@ -24,13 +24,18 @@ export default function LoginPage() {
     try {
       const response = await api.post("/auth/login", { email, password });
       if (response.success) {
-        // Double check if the user is a SUPER_ADMIN in any of their memberships
-        const isSuperAdmin = response.data.memberships?.some((m: any) => m.role === "SUPER_ADMIN");
-        if (!isSuperAdmin) {
+        // Find the SUPER_ADMIN membership to ensure we log into the correct workspace context
+        const superAdminMembership = response.data.memberships?.find((m: any) => m.role === "SUPER_ADMIN");
+        if (!superAdminMembership) {
           setError("Access Denied: SuperAdmin privileges required.");
           return;
         }
         
+        // Override the default selected organization with the SuperAdmin one
+        if (superAdminMembership.organization) {
+            response.data.organization = superAdminMembership.organization;
+        }
+
         // Inject role into the user object so that other parts of the admin panel work
         response.data.user.role = "SUPER_ADMIN";
         login(response.data);

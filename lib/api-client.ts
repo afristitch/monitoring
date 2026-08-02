@@ -26,10 +26,21 @@ async function fetcher(endpoint: string, options: RequestInit = {}, asText = fal
     const activeEnvId = typeof window !== "undefined" ? (localStorage.getItem("sd_active_env") || "local") : "local";
     const tokenKey = `sd_${activeEnvId}_accessToken`;
     const token = typeof window !== "undefined" ? localStorage.getItem(tokenKey) : null;
+    const orgStr = typeof window !== "undefined" ? localStorage.getItem(`sd_${activeEnvId}_organization`) : null;
+    
+    let orgId = null;
+    if (orgStr && orgStr !== "undefined") {
+        try {
+            orgId = JSON.parse(orgStr)._id;
+        } catch (e) {
+            console.error("Failed to parse organization from local storage", e);
+        }
+    }
 
     const headers: Record<string, string> = {
         "ngrok-skip-browser-warning": "69420",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(orgId ? { "x-organization-id": orgId } : {}),
         ...((options.headers as Record<string, string>) || {}),
     };
 
@@ -52,7 +63,7 @@ async function fetcher(endpoint: string, options: RequestInit = {}, asText = fal
 
         console.log(`[API] Response ${response.status} from ${endpoint}`);
 
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
             handleAuthError();
         }
 
@@ -73,7 +84,10 @@ async function fetcher(endpoint: string, options: RequestInit = {}, asText = fal
                 localStorage.removeItem(`sd_${activeEnvId}_refreshToken`);
                 localStorage.removeItem(`sd_${activeEnvId}_user`);
                 localStorage.removeItem(`sd_${activeEnvId}_organization`);
-                window.location.href = "/login";
+                
+                if (window.location.pathname !== "/login") {
+                    window.location.href = "/login";
+                }
             }
         }
 
